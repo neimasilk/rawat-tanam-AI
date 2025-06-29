@@ -8,6 +8,7 @@ from config import settings
 from api.v1.router import api_router
 from middleware.rate_limiter import RateLimitMiddleware
 from middleware.auth import AuthMiddleware
+from database import init_db
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -83,6 +84,18 @@ async def general_exception_handler(request: Request, exc: Exception):
             }
         }
     )
+
+# Startup event
+@app.on_event("startup")
+async def startup_event():
+    """Initialize database on startup"""
+    try:
+        logger.info("Initializing database...")
+        init_db()
+        logger.info("Database initialized successfully")
+    except Exception as e:
+        logger.error(f"Failed to initialize database: {e}")
+        raise
 
 # Health check endpoint
 @app.get("/health")

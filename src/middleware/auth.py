@@ -1,6 +1,8 @@
 from fastapi import Request, HTTPException
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
+from starlette.requests import Request
+from fastapi import HTTPException
 from jose import JWTError, jwt
 from typing import Optional, Dict, Any
 from config import settings
@@ -57,8 +59,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
             "/api/v1/auth/login",
             "/api/v1/auth/register",
             "/api/v1/auth/tiers",
-            "/api/v1/info",
-            "/api/v1/species/stats"
+            "/api/v1/info"
         ]
         return path in public_paths
     
@@ -99,14 +100,22 @@ class AuthMiddleware(BaseHTTPMiddleware):
         # Reject request if no valid authentication
         if not user_info:
             logger.warning(f"Authentication failed for {request.url.path}")
-            raise HTTPException(
-                status_code=401,
-                detail={
+            import json
+            error_response = {
+                "error": {
+                    "code": 401,
                     "message": "Authentication required",
                     "error_code": "INVALID_CREDENTIALS",
                     "supported_methods": ["API Key (X-API-Key header)", "JWT Token (Authorization: Bearer)"]
-                },
-                headers={"WWW-Authenticate": "Bearer"}
+                }
+            }
+            return Response(
+                content=json.dumps(error_response),
+                status_code=401,
+                headers={
+                    "Content-Type": "application/json",
+                    "WWW-Authenticate": "Bearer"
+                }
             )
         
         # Add user info to request state
